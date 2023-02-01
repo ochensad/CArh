@@ -1,0 +1,12 @@
+\babel@toc {russian}{}\relax 
+\contentsline {section}{Введение}{3}{section*.1}%
+\contentsline {section}{\numberline {1}Аналитическая часть}{4}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Архитектура набора команд RV32I}{4}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Микроархитектура}{4}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Ход выполнения работы}{7}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Задание 1}{7}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Задание 2}{9}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Задание 3}{10}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Задание 4}{10}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Задание 5}{11}{subsection.2.5}%
+\contentsline {section}{Заключение}{18}{figure.caption.13}%

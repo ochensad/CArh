@@ -1,0 +1,105 @@
+
+#include <stdlib.h>
+#include <unistd.h>
+#include "lnh64.h"
+#include "gpc_io_swk.h"
+#include "gpc_handlers.h"
+
+#define SW_KERNEL_VERSION 26
+#define DEFINE_LNH_DRIVER
+#define DEFINE_MQ_R2L
+#define DEFINE_MQ_L2R
+#define __fast_recall__
+
+#define A_STRUCTURE 1
+#define B_STRUCTURE 2
+#define R_STRUCTURE 3
+
+extern lnh lnh_core;
+extern global_memory_io gmio;
+volatile unsigned int event_source;
+
+int main(void) {
+    /////////////////////////////////////////////////////////
+    //                  Main Event Loop
+    /////////////////////////////////////////////////////////
+    //Leonhard driver structure should be initialised
+    lnh_init();
+    //Initialise host2gpc and gpc2host queues
+    gmio_init(lnh_core.partition.data_partition);
+    for (;;) {
+        //Wait for event
+        while (!gpc_start());
+        //Enable RW operations
+        set_gpc_state(BUSY);
+        //Wait for event
+        event_source = gpc_config();
+        switch(event_source) {
+            /////////////////////////////////////////////
+            //  Measure GPN operation frequency
+            /////////////////////////////////////////////
+            case __event__(insert_burst) : insert_burst(); break;
+            case __event__(search_burst) : search_burst(); break;
+        }
+        //Disable RW operations
+        set_gpc_state(IDLE);
+        while (gpc_start());
+
+    }
+}
+
+//-------------------------------------------------------------
+//      ???????? ????? ?? ?????????? ?????? ? ?????? ? lnh64
+//-------------------------------------------------------------
+ 
+void insert_burst() {
+
+    //???????? ?????? ?? ????????
+    lnh_del_str_sync(A_STRUCTURE);
+    lnh_del_str_sync(B_STRUCTURE);
+    lnh_del_str_sync(R_STRUCTURE);
+    //?????????? ??????????
+    unsigned int count = mq_receive();
+    unsigned int size_in_bytes = 2*count*sizeof(uint64_t);
+    //???????? ?????? ??? ?????? ??????
+    uint64_t *buffer = (uint64_t*)malloc(size_in_bytes);
+    //?????? ?????? ? RAM
+    buf_read(size_in_bytes, (char*)buffer);
+    //????????? ?????? - ?????? 
+    for (int i=0; i<count; i++) {
+        lnh_ins_sync(A_STRUCTURE,buffer[2*i],0);
+        lnh_ins_sync(B_STRUCTURE, buffer[2*i+1],0);
+    }
+    lnh_sync();
+    free(buffer);
+}
+
+
+//-------------------------------------------------------------
+//      ????? ????????? lnh64 ? ?????? ? ?????????? ?????? 
+//-------------------------------------------------------------
+ 
+void search_burst() {
+
+    //???????? ?????????? ?????????? ??????
+    lnh_sync(); 
+    //?????????? ??????????
+    lnh_not_sync(A_STRUCTURE, B_STRUCTURE,R_STRUCTURE);
+    //
+    unsigned int count = lnh_get_num(R_STRUCTURE);
+    unsigned int size_in_bytes = count*sizeof(uint64_t);
+    //???????? ?????? ??? ?????? ??????
+    uint64_t *R = (uint64_t*)malloc(size_in_bytes);
+    
+    //?????? ????? ? ???????? ? ?????
+    for (int i=0; i<count; i++) {
+        R[i] = lnh_core.result.key;
+        lnh_next(R_STRUCTURE,lnh_core.result.key);
+    }
+    
+    //?????? ?????????? ?????? ?? RAM
+    buf_write(size_in_bytes, (char*)R);   
+    mq_send(count);
+    free(R);
+
+}
